@@ -165,8 +165,6 @@ notebooks/
 data/repos/copies
 .keys
 .vscode/
-*.jsonl
-*.jsonl.*
 analysis/**/*.json
 analysis/**/scratch*
 analysis/benchmark/plots/
