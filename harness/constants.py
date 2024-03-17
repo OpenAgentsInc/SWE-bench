@@ -136,10 +136,9 @@ MAP_VERSION_TO_INSTALL_DJANGO.update(
 
 MAP_VERSION_TO_INSTALL_REQUESTS = {
     k: {"python": "3.9", "packages": "pytest", "install": "python -m pip install ."}
-    for k in
-        ["0.7", "0.8", "0.9", "0.11", "0.13", "0.14", "1.1", "1.2", "2.0", "2.2"] + \
-        ["2.3", "2.4", "2.5", "2.7", "2.8", "2.9", "2.10", "2.11", "2.12", "2.17"] + \
-        ["2.18", "2.19", "2.22", "2.26", "2.25", "2.27", "3.0"]
+    for k in ["0.7", "0.8", "0.9", "0.11", "0.13", "0.14", "1.1", "1.2", "2.0", "2.2"]
+    + ["2.3", "2.4", "2.5", "2.7", "2.8", "2.9", "2.10", "2.11", "2.12", "2.17"]
+    + ["2.18", "2.19", "2.22", "2.26", "2.25", "2.27", "3.0"]
 }
 
 MAP_VERSION_TO_INSTALL_SEABORN = {
@@ -204,21 +203,20 @@ MAP_VERSION_TO_INSTALL_SPHINX = {
         "pip_packages": "tox",
         "install": "pip install -e .[test]",
         "pre_install": ["sed -i 's/pytest/pytest -rA/' tox.ini"],
-    } for k in
-        ["1.5", "1.6", "1.7", "1.8", "2.0", "2.1", "2.2", "2.3", "2.4", "3.0"] + \
-        ["3.1", "3.2", "3.3", "3.4", "3.5", "4.0", "4.1", "4.2", "4.3", "4.4"] + \
-        ["4.5", "5.0", "5.1", "5.2", "5.3", "6.0", "6.2", "7.0", "7.1", "7.2"]
+    }
+    for k in ["1.5", "1.6", "1.7", "1.8", "2.0", "2.1", "2.2", "2.3", "2.4", "3.0"]
+    + ["3.1", "3.2", "3.3", "3.4", "3.5", "4.0", "4.1", "4.2", "4.3", "4.4"]
+    + ["4.5", "5.0", "5.1", "5.2", "5.3", "6.0", "6.2", "7.0", "7.1", "7.2"]
 }
 for k in ["3.0", "3.1", "3.2", "3.3", "3.4", "3.5", "4.0"]:
-    MAP_VERSION_TO_INSTALL_SPHINX[k][
-        "pre_install"
-    ].append("sed -i 's/Jinja2>=2.3/Jinja2<3.1/' setup.py")
+    MAP_VERSION_TO_INSTALL_SPHINX[k]["pre_install"].append(
+        "sed -i 's/Jinja2>=2.3/Jinja2<3.1/' setup.py"
+    )
 
 MAP_VERSION_TO_INSTALL_ASTROPY = {
     k: {"python": "3.9", "install": "pip install -e .[test]"}
-    for k in
-        ["0.1", "0.2", "0.3", "0.4", "1.1", "1.2", "1.3", "3.0", "3.1", "3.2"] + \
-        ["4.1", "4.2", "4.3", "5.0", "5.1", "5.2"]
+    for k in ["0.1", "0.2", "0.3", "0.4", "1.1", "1.2", "1.3", "3.0", "3.1", "3.2"]
+    + ["4.1", "4.2", "4.3", "5.0", "5.1", "5.2"]
 }
 
 MAP_VERSION_TO_INSTALL_SYMPY = {
@@ -228,9 +226,8 @@ MAP_VERSION_TO_INSTALL_SYMPY = {
         "pip_packages": "flake8-comprehensions",
         "install": "pip install -e .",
     }
-    for k in
-        ["0.7", "1.0", "1.1", "1.10", "1.11", "1.12", "1.2", "1.4", "1.5", "1.6"] + \
-        ["1.7", "1.8", "1.9"]
+    for k in ["0.7", "1.0", "1.1", "1.10", "1.11", "1.12", "1.2", "1.4", "1.5", "1.6"]
+    + ["1.7", "1.8", "1.9"]
 }
 MAP_VERSION_TO_INSTALL_SYMPY.update(
     {
@@ -245,7 +242,18 @@ MAP_VERSION_TO_INSTALL_SYMPY.update(
 
 MAP_VERSION_TO_INSTALL_PYLINT = {
     k: {"python": "3.9", "packages": "requirements.txt", "install": "pip install -e ."}
-    for k in ["2.10", "2.11", "2.13", "2.14", "2.15", "2.16", "2.17", "2.8", "2.9", "3.0"]
+    for k in [
+        "2.10",
+        "2.11",
+        "2.13",
+        "2.14",
+        "2.15",
+        "2.16",
+        "2.17",
+        "2.8",
+        "2.9",
+        "3.0",
+    ]
 }
 
 MAP_VERSION_TO_INSTALL_XARRAY = {
@@ -266,11 +274,50 @@ MAP_VERSION_TO_INSTALL_TRANSFORMERS = {
         "pip_packages": "pytest torch tensorflow flax",
     }
     for k in [
-        '4.28', '4.29', '4.30', '4.31', '4.32', '4.16', '4.14', '4.15', '4.17',
-        '4.19', '4.18', '4.22', '4.20', '4.11', '4.13', '4.12', '4.6', '4.7',
-        '4.9', '4.8', '4.10', '3.1', '3.2', '3.4', '3.3', '4.0', '3.5', '4.1',
-        '2.5', '2.8', '2.9', '2.11', '2.10', '3.0', '4.3', '4.2', '4.5', '4.4',
-        '4.21', '4.23', '4.24', '4.26', '4.25', '4.27'
+        "4.28",
+        "4.29",
+        "4.30",
+        "4.31",
+        "4.32",
+        "4.16",
+        "4.14",
+        "4.15",
+        "4.17",
+        "4.19",
+        "4.18",
+        "4.22",
+        "4.20",
+        "4.11",
+        "4.13",
+        "4.12",
+        "4.6",
+        "4.7",
+        "4.9",
+        "4.8",
+        "4.10",
+        "3.1",
+        "3.2",
+        "3.4",
+        "3.3",
+        "4.0",
+        "3.5",
+        "4.1",
+        "2.5",
+        "2.8",
+        "2.9",
+        "2.11",
+        "2.10",
+        "3.0",
+        "4.3",
+        "4.2",
+        "4.5",
+        "4.4",
+        "4.21",
+        "4.23",
+        "4.24",
+        "4.26",
+        "4.25",
+        "4.27",
     ]
 }
 
@@ -281,8 +328,23 @@ MAP_VERSION_TO_INSTALL_SQLFLUFF = {
         "install": "pip install -e .",
     }
     for k in [
-        '0.10', '0.11', '0.12', '0.13', '0.4', '0.5', '0.6', '0.8', '0.9',
-        '1.0', '1.1', '1.2', '1.3', '1.4', '2.0', '2.1', '2.2'
+        "0.10",
+        "0.11",
+        "0.12",
+        "0.13",
+        "0.4",
+        "0.5",
+        "0.6",
+        "0.8",
+        "0.9",
+        "1.0",
+        "1.1",
+        "1.2",
+        "1.3",
+        "1.4",
+        "2.0",
+        "2.1",
+        "2.2",
     ]
 }
 
@@ -293,8 +355,23 @@ MAP_VERSION_TO_INSTALL_DBT_CORE = {
         "install": "pip install -e .",
     }
     for k in [
-        '0.13', '0.14', '0.15', '0.16', '0.17', '0.18', '0.19', '0.20',
-        '0.21', '1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7'
+        "0.13",
+        "0.14",
+        "0.15",
+        "0.16",
+        "0.17",
+        "0.18",
+        "0.19",
+        "0.20",
+        "0.21",
+        "1.0",
+        "1.1",
+        "1.2",
+        "1.3",
+        "1.4",
+        "1.5",
+        "1.6",
+        "1.7",
     ]
 }
 
@@ -304,21 +381,40 @@ MAP_VERSION_TO_INSTALL_PYVISTA = {
         "install": "pip install -e .",
         "pip_packages": "pytest",
     }
-    for k in ['0.20', '0.21', '0.22', '0.23']
+    for k in ["0.20", "0.21", "0.22", "0.23"]
 }
-MAP_VERSION_TO_INSTALL_PYVISTA.update({
-    k: {
-        "python": "3.9",
-        "packages": "requirements.txt",
-        "install": "pip install -e .",
-        "pip_packages": "pytest",
+MAP_VERSION_TO_INSTALL_PYVISTA.update(
+    {
+        k: {
+            "python": "3.9",
+            "packages": "requirements.txt",
+            "install": "pip install -e .",
+            "pip_packages": "pytest",
+        }
+        for k in [
+            "0.24",
+            "0.25",
+            "0.26",
+            "0.27",
+            "0.28",
+            "0.29",
+            "0.30",
+            "0.31",
+            "0.32",
+            "0.33",
+            "0.34",
+            "0.35",
+            "0.36",
+            "0.37",
+            "0.38",
+            "0.39",
+            "0.40",
+            "0.41",
+            "0.42",
+            "0.43",
+        ]
     }
-    for k in [
-        '0.24', '0.25', '0.26', '0.27', '0.28', '0.29', '0.30', '0.31',
-        '0.32', '0.33', '0.34', '0.35', '0.36', '0.37', '0.38', '0.39',
-        '0.40', '0.41', '0.42', '0.43'
-    ]
-})
+)
 
 MAP_VERSION_TO_INSTALL_ASTROID = {
     k: {
@@ -327,8 +423,18 @@ MAP_VERSION_TO_INSTALL_ASTROID = {
         "pip_packages": "pytest",
     }
     for k in [
-        '2.10', '2.12', '2.13', '2.14', '2.15', '2.16', '2.5', '2.6',
-        '2.7', '2.8', '2.9', '3.0'
+        "2.10",
+        "2.12",
+        "2.13",
+        "2.14",
+        "2.15",
+        "2.16",
+        "2.5",
+        "2.6",
+        "2.7",
+        "2.8",
+        "2.9",
+        "3.0",
     ]
 }
 
@@ -338,8 +444,22 @@ MAP_VERSION_TO_INSTALL_MARSHMALLOW = {
         "install": "pip install -e '.[dev]'",
     }
     for k in [
-        '2.18', '2.19', '2.20', '3.0', '3.1', '3.10', '3.11', '3.12',
-        '3.13', '3.15', '3.16', '3.19', '3.2', '3.4', '3.8', '3.9'
+        "2.18",
+        "2.19",
+        "2.20",
+        "3.0",
+        "3.1",
+        "3.10",
+        "3.11",
+        "3.12",
+        "3.13",
+        "3.15",
+        "3.16",
+        "3.19",
+        "3.2",
+        "3.4",
+        "3.8",
+        "3.9",
     ]
 }
 
@@ -348,38 +468,41 @@ MAP_VERSION_TO_INSTALL_PVLIB = {
         "python": "3.9",
         "install": "pip install -e .[all]",
         "packages": "pandas scipy",
-        "pip_packages": "jupyter ipython matplotlib pytest flake8"
+        "pip_packages": "jupyter ipython matplotlib pytest flake8",
     }
-    for k in [
-        '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9'
-    ]
+    for k in ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"]
 }
 
 MAP_VERSION_TO_INSTALL_PYDICOM = {
-    k: {
-        "python": "3.6",
-        "install": "pip install -e .",
-        "packages": "numpy"
-    }
+    k: {"python": "3.6", "install": "pip install -e .", "packages": "numpy"}
     for k in [
-        '1.0', '1.1', '1.2', '1.3', '1.4',
-        '2.0', '2.1', '2.2', '2.3', '2.4', '3.0'
+        "1.0",
+        "1.1",
+        "1.2",
+        "1.3",
+        "1.4",
+        "2.0",
+        "2.1",
+        "2.2",
+        "2.3",
+        "2.4",
+        "3.0",
     ]
 }
-MAP_VERSION_TO_INSTALL_PYDICOM.update({
-    k: {**MAP_VERSION_TO_INSTALL_PYDICOM[k], "python": "3.8"}
-    for k in ['1.4', '2.0']})
-MAP_VERSION_TO_INSTALL_PYDICOM.update({
-    k: {**MAP_VERSION_TO_INSTALL_PYDICOM[k], "python": "3.9"}
-    for k in ['2.1', '2.2']})
-MAP_VERSION_TO_INSTALL_PYDICOM.update({
-    k: {**MAP_VERSION_TO_INSTALL_PYDICOM[k], "python": "3.10"}
-    for k in ['2.3']})
-MAP_VERSION_TO_INSTALL_PYDICOM.update({
-    k: {**MAP_VERSION_TO_INSTALL_PYDICOM[k], "python": "3.11"}
-    for k in ['2.4', '3.0']})
+MAP_VERSION_TO_INSTALL_PYDICOM.update(
+    {k: {**MAP_VERSION_TO_INSTALL_PYDICOM[k], "python": "3.8"} for k in ["1.4", "2.0"]}
+)
+MAP_VERSION_TO_INSTALL_PYDICOM.update(
+    {k: {**MAP_VERSION_TO_INSTALL_PYDICOM[k], "python": "3.9"} for k in ["2.1", "2.2"]}
+)
+MAP_VERSION_TO_INSTALL_PYDICOM.update(
+    {k: {**MAP_VERSION_TO_INSTALL_PYDICOM[k], "python": "3.10"} for k in ["2.3"]}
+)
+MAP_VERSION_TO_INSTALL_PYDICOM.update(
+    {k: {**MAP_VERSION_TO_INSTALL_PYDICOM[k], "python": "3.11"} for k in ["2.4", "3.0"]}
+)
 
-MAP_VERSION_TO_INSTALL_HUMANEVAL= {k: { "python": "3.9" } for k in ['1.0']}
+MAP_VERSION_TO_INSTALL_HUMANEVAL = {k: {"python": "3.9"} for k in ["1.0"]}
 
 # Constants - Task Instance Instllation Environment
 MAP_VERSION_TO_INSTALL = {
@@ -439,10 +562,13 @@ MAP_REPO_TO_TEST_FRAMEWORK = {
 MAP_REPO_TO_REQS_PATHS = {
     "dbt-labs/dbt-core": ["dev-requirements.txt", "dev_requirements.txt"],
     "django/django": ["tests/requirements/py3.txt"],
-    "matplotlib/matplotlib": ["requirements/dev/dev-requirements.txt", "requirements/testing/travis_all.txt"],
+    "matplotlib/matplotlib": [
+        "requirements/dev/dev-requirements.txt",
+        "requirements/testing/travis_all.txt",
+    ],
     "pallets/flask": ["requirements/dev.txt"],
     "pylint-dev/pylint": ["requirements_test.txt"],
-    "pyvista/pyvista": ["requirements_test.txt", 'requirements.txt'],
+    "pyvista/pyvista": ["requirements_test.txt", "requirements.txt"],
     "sqlfluff/sqlfluff": ["requirements_dev.txt"],
     "sympy/sympy": ["requirements-dev.txt"],
 }
@@ -471,5 +597,17 @@ TESTS_PASSED = ">>>>> All Tests Passed"
 TESTS_TIMEOUT = ">>>>> Tests Timed Out"
 
 # Constants - Miscellaneous
-NON_TEST_EXTS = [".json", ".png", "csv", ".txt", ".md", ".jpg", ".jpeg", ".pkl", ".yml", ".yaml", ".toml"]
+NON_TEST_EXTS = [
+    ".json",
+    ".png",
+    "csv",
+    ".txt",
+    ".md",
+    ".jpg",
+    ".jpeg",
+    ".pkl",
+    ".yml",
+    ".yaml",
+    ".toml",
+]
 SWE_BENCH_URL_RAW = "https://raw.githubusercontent.com/"
