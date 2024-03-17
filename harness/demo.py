@@ -1,32 +1,41 @@
 import os
 import subprocess
+from langchain_anthropic import ChatAnthropic
 from .dataset import get_dataset
 from .scripts import make_test_spec
 
+# Load dotenv
+from dotenv import load_dotenv
+
+# Load the .env file
+load_dotenv()
+
+# Ensure the API key is set
+anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+if not anthropic_api_key:
+    raise ValueError("Anthropic API key not found. Please set the ANTHROPIC_API_KEY environment variable.")
+
 # Get the dataset and the test specification for the first dataset item
 dataset = get_dataset()
-test1 = make_test_spec(dataset[0])  # instance_id, setup_script, prompt, eval_script
 
-# Define the path for the workspace directory relative to the current working directory
-workspace_dir = os.path.join(os.getcwd(), "workspace")
+# Get the first dataset
+first_dataset_item = dataset[0] # repo, instance_id, base_commit, patch, test_patch, problem_statement, hints_text, created_at, version, FAIL_TO_PASS, PASS_TO_PASS, environment_setup_commit
+# test1 = make_test_spec(first_dataset_item)  # instance_id, setup_script, prompt, eval_script
 
-# Automatically create the workspace directory if it does not exist
-os.makedirs(workspace_dir, exist_ok=True)
+# Initialize the ChatAnthropic client
+chat = ChatAnthropic(anthropic_api_key=anthropic_api_key, model='claude-3-opus-20240229', temperature=0)
 
-# Define the path for the setup script file within the workspace directory
-setup_script_path = os.path.join(workspace_dir, 'setup_script.sh')
+# Formulate the prompt
+prompt = (
+    f"Please help me resolve this GitHub issue for the repository {first_dataset_item['repo']}. "
+    f"The issue is: {first_dataset_item['problem_statement']}\n\n"
+    "Hints:\n"
+    f"{first_dataset_item['hints_text']}\n\n"
+    "What would be your approach to resolve this issue?"
+)
 
-# Save the setup_script to a file in the workspace directory
-with open(setup_script_path, 'w') as file:
-    file.write(test1.setup_script)
-    print(f"setup_script saved to {setup_script_path}")
+# Adjust the call to invoke with a string prompt directly
+response = chat.invoke(prompt)
 
-# Now, let's build the Docker image
-docker_build_command = f"docker build -t swebench_setup {workspace_dir}"
-subprocess.run(docker_build_command, check=True, shell=True)
-print("Docker image built.")
-
-# And run the Docker container from the image
-docker_run_command = "docker run --rm swebench_setup"
-subprocess.run(docker_run_command, check=True, shell=True)
-print("Docker container ran with setup script.")
+# Print the response from the model
+print("Claude's response:", response.content)
