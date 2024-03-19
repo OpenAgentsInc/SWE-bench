@@ -1,7 +1,9 @@
+import json
 import os
 from git import Repo, GitCommandError
 from colorama import Fore, Style, init
 from harness_devin.types import SwebenchInstance
+from json.decoder import JSONDecodeError
 from pathlib import Path
 
 class Seven:
@@ -12,7 +14,13 @@ class Seven:
         self.token = os.getenv('GITHUB_TOKEN')
         self.repo_url = f"https://github.com/{self.repo}.git"
         self.local_repo_path = self.clone_or_checkout_repo(self.repo_url, self.instance_id, self.base_commit)
-        print(Fore.GREEN + f"Repository is available at {self.local_repo_path}")
+        self.descriptions_path = Path(self.local_repo_path).parent / 'descriptions'
+        os.makedirs(self.descriptions_path, exist_ok=True)  # Ensure the directory for descriptions exists
+        # File extensions to include
+        self.extensions = ('.md', '.js', '.jsx', '.py', '.json', '.html', '.css', '.scss', '.yml', '.yaml', '.ts', '.tsx', '.ipynb', '.c', '.cc', '.cpp', '.go', '.h', '.hpp', '.java', '.sol', '.sh', '.txt')
+        # Directories to exclude from processing
+        self.directory_blacklist = ('build', 'dist', '.github', 'site', 'tests')
+        print(Fore.GREEN + f"Repository initialized at {self.local_repo_path}")
 
     def clone_or_checkout_repo(self, repo_url, instance_id, base_commit):
         # Define the local path to clone the repository to, now using instance_id
@@ -39,9 +47,64 @@ class Seven:
 
         return local_path
 
+    def load_descriptions(self):
+        descriptions_file = self.descriptions_path / 'descriptions.json'
+        if descriptions_file.exists():
+            try:
+                with open(descriptions_file, 'r') as f:
+                    return json.load(f)
+            except JSONDecodeError:
+                print(Fore.RED + "Invalid or empty JSON. Returning an empty dictionary.")
+                return {}
+        return {}
+
+    def save_descriptions(self, descriptions):
+        descriptions_file = self.descriptions_path / 'descriptions.json'
+        with open(descriptions_file, 'w') as f:
+            json.dump(descriptions, f, indent=2)
+
+    def generate_description(self, file_path, code):
+        # Replace this placeholder with the actual call to generate the description
+        # For example, using OpenAI's Codex or any other model/API you have access to
+        description_prompt = 'A short summary in plain English of the above code is:'
+        extension = file_path.suffix[1:]  # Remove the dot from the extension
+        prompt = f'File: {file_path}\n\nCode:\n\n```{extension}\n{code}```\n\n{description_prompt}\nThis file'
+        description = 'This file contains a sample code snippet.'  # Placeholder description
+        return description
+
     def process_repository(self):
-        # Example: Iterate over each file in the cloned repository
-        for root, dirs, files in os.walk(self.local_repo_path):
-            for file in files:
-                file_path = Path(root) / file
-                print(file_path)  # Example action: print each file path
+        descriptions = self.load_descriptions()
+        num_files = len(descriptions)
+        repo_root_path = Path(self.local_repo_path)
+
+        for root, dirs, files in os.walk(repo_root_path, topdown=True):
+            dirs[:] = [d for d in dirs if d not in self.directory_blacklist]  # Filter out blacklisted directories
+            for file_name in files:
+                file_path = Path(root) / file_name
+                if file_path.suffix not in self.extensions:
+                    continue  # Skip files not in the whitelist
+
+                # Calculate the relative path from the repository root
+                relative_path = file_path.relative_to(repo_root_path)
+
+                # Convert to string and ensure it starts with "/"
+                relative_path_str = f"/{relative_path}"
+
+                if relative_path_str in descriptions:
+                    continue  # Skip if description already exists
+
+                try:
+                    with open(file_path, 'r') as file:
+                        code = file.read()
+                    description = self.generate_description(file_path, code)
+                    descriptions[relative_path_str] = description  # Save using the relative path
+
+                    num_files += 1
+                    if num_files % 10 == 0:
+                        self.save_descriptions(descriptions)
+                        print(f'Saved descriptions for {num_files} files.')
+                except Exception as e:
+                    print(Fore.RED + f"Error processing {file_path}: {e}")
+
+        self.save_descriptions(descriptions)
+        print(Fore.GREEN + f"Completed processing. Total files described: {num_files}.")
