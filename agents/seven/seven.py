@@ -147,10 +147,15 @@ class Seven:
 
         # If embeddings file already exists, load and return
         if embeds_path.exists():
-            print("Loading existing embeddings.")
-            embeddings = np.load(embeds_path)
-            print(f"Loaded {len(embeddings)} embeddings.")
-            return embeddings
+
+            # If # of embeddings of the existing file does not match the # of descriptions, re-generate
+            if len(descriptions) != len(np.load(embeds_path)):
+                print(Fore.YELLOW + "Number of descriptions has changed. Re-generating embeddings.")
+            else:
+                print("Loading existing embeddings.")
+                embeddings = np.load(embeds_path)
+                print(f"Loaded {len(embeddings)} embeddings.")
+                return embeddings
 
         # Initialize an empty list to collect embeddings
         embeddings = []
@@ -177,5 +182,6 @@ class Seven:
 
     def process_embeddings(self):
         descriptions = self.load_descriptions()
+        print(Fore.YELLOW + f"Loaded {len(descriptions)} descriptions.")
         self.embeddings = self.get_embeds(descriptions)
         print(Fore.GREEN + f"Initialized embeddings: {len(self.embeddings)}")
