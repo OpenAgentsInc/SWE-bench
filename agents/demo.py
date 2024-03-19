@@ -2,11 +2,8 @@ import os
 import subprocess
 from langchain_anthropic import ChatAnthropic
 from harness_devin import get_dataset, make_test_spec
-
-# Load dotenv
 from dotenv import load_dotenv
 
-# Load the .env file
 load_dotenv()
 
 # Ensure the API key is set
