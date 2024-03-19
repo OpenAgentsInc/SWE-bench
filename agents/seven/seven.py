@@ -207,6 +207,8 @@ class Seven:
         coder = Coder.create(client=client, fnames=fnames_str)
         print(f"Created coder with {len(fnames_str)} files.")
 
+        coder.run("Please help me resolve this issue: " + problem_statement)
+
 
     def generate_patches_old(self):
 
