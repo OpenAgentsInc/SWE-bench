@@ -5,5 +5,4 @@ from harness_devin.types import SwebenchInstance # Dict with keys: repo, instanc
 init(autoreset=True)
 
 def run(dataset: SwebenchInstance, test_spec: TestSpec):
-    print(Fore.MAGENTA + 'Booting up Seven')
-    print("INSTANCE ID: ", dataset["instance_id"])
+    print(Fore.MAGENTA + 'Seven will assimilate ' + dataset["instance_id"])
