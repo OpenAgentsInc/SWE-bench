@@ -189,6 +189,12 @@ class Seven:
 
 
     def generate_patches(self):
+        problem_statement = self.dataset.get("problem_statement", "")
+        nearest_files_contents = self.get_nearest_files(problem_statement)
+        print(f"Found {len(nearest_files_contents)} nearest files.")
+
+
+    def generate_patches_old(self):
 
         def clean_code_block(code_block):
             # Strip leading and trailing whitespace

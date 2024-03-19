@@ -16,7 +16,8 @@ MODEL_EMBED = 'text-embedding-ada-002'
 MODEL_COMPLETION = 'gpt-3.5-turbo-instruct'
 MODEL_COMPLETION_CODE = 'gpt-3.5-turbo-instruct'
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# openai.api_key = os.getenv("OPENAI_API_KEY")
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def get_embedding(text: str, model="text-embedding-3-small", **kwargs) -> List[float]:
     # replace newlines, which can negatively affect performance.
@@ -37,8 +38,10 @@ def embed(text):
             text[i] = t.replace("\n", " ")
             if len(text[i]) > MAX_CONTENT_LENGTH:
                 text[i] = text[i][0:MAX_CONTENT_LENGTH]
-        embeddings = openai.Embedding.create(input=text, model=MODEL_EMBED)["data"]
-        return np.array([np.array(embedding['embedding'], dtype=np.float32) for embedding in embeddings])
+        embeddings = client.embeddings.create(input=text, model=MODEL_EMBED)
+        embeddings = embeddings.data
+
+        return np.array([np.array(embedding.embedding, dtype=np.float32) for embedding in embeddings])
     else:
         text = text.replace("\n", " ")
         if len(text) > MAX_CONTENT_LENGTH:
