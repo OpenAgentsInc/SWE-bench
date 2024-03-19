@@ -11,13 +11,4 @@ init(autoreset=True)
 def run(dataset: SwebenchInstance, test_spec: TestSpec):
     print(Fore.MAGENTA + 'Seven will assimilate ' + dataset["instance_id"])
 
-    # Define the path to the directory where the repo should be located
-    repo_directory = Path('agents') / 'seven' / dataset["instance_id"]
-
-    # Check if the directory exists
-    if not repo_directory.exists():
-        print(Fore.BLUE + f"Cloning the repo into {repo_directory}")
-
-        seven = Seven(dataset)
-    else:
-        print(Fore.GREEN + f"Repository {repo_directory} already exists.")
+    seven = Seven(dataset)

@@ -5,16 +5,17 @@ from harness_devin.types import SwebenchInstance
 
 class Seven:
     def __init__(self, dataset: SwebenchInstance):
+        self.instance_id = dataset["instance_id"]
         self.repo = dataset["repo"]
         self.base_commit = dataset["base_commit"]
         self.token = os.getenv('GITHUB_TOKEN')
         self.repo_url = f"https://github.com/{self.repo}.git"
-        self.local_repo_path = self.clone_or_checkout_repo(self.repo_url, repo_name=self.repo.split('/')[1], base_commit=self.base_commit)
+        self.local_repo_path = self.clone_or_checkout_repo(self.repo_url, self.instance_id, self.base_commit)
         print(Fore.GREEN + f"Repository is available at {self.local_repo_path}")
 
-    def clone_or_checkout_repo(self, repo_url, repo_name, base_commit):
-        # Define the local path to clone the repository to
-        local_path = os.path.join(os.path.dirname(__file__), 'workspace', repo_name)
+    def clone_or_checkout_repo(self, repo_url, instance_id, base_commit):
+        # Define the local path to clone the repository to, now using instance_id
+        local_path = os.path.join(os.path.dirname(__file__), 'workspace', instance_id)
 
         if not os.path.isdir(os.path.join(local_path, '.git')):
             # Ensure the target directory exists
