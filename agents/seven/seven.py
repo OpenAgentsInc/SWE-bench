@@ -2,6 +2,7 @@ import os
 from git import Repo, GitCommandError
 from colorama import Fore, Style, init
 from harness_devin.types import SwebenchInstance
+from pathlib import Path
 
 class Seven:
     def __init__(self, dataset: SwebenchInstance):
@@ -37,3 +38,10 @@ class Seven:
             print(Fore.RED + f"Failed to checkout commit {base_commit}: {e}")
 
         return local_path
+
+    def process_repository(self):
+        # Example: Iterate over each file in the cloned repository
+        for root, dirs, files in os.walk(self.local_repo_path):
+            for file in files:
+                file_path = Path(root) / file
+                print(file_path)  # Example action: print each file path
