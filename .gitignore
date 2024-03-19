@@ -172,3 +172,4 @@ analysis/evaluation/*.csv
 analysis/evaluation/*.pdf
 
 workspace/
+*.pkl
