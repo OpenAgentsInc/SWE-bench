@@ -18,10 +18,6 @@ def run(dataset: SwebenchInstance, test_spec: TestSpec):
     if not repo_directory.exists():
         print(Fore.BLUE + f"Cloning the repo into {repo_directory}")
 
-        seven = Seven(dataset["repo"])
-        print("What did that do?")
-
-        # Here you would clone the repo if it didn't exist, using whatever means is appropriate
-        # For example, you might use subprocess to call git or another method to obtain the repo
+        seven = Seven(dataset)
     else:
         print(Fore.GREEN + f"Repository {repo_directory} already exists.")
