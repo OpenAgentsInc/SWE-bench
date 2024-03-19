@@ -1,9 +1,11 @@
 import json
+import numpy as np
 import os
 from git import Repo, GitCommandError
 from colorama import Fore, Style, init
 from harness_devin.types import SwebenchInstance
 from json.decoder import JSONDecodeError
+from .openai_helpers.helpers import compare_embeddings, compare_text, embed, complete, complete_code, EMBED_DIMS
 from pathlib import Path
 
 class Seven:
@@ -21,6 +23,8 @@ class Seven:
         # Directories to exclude from processing
         self.directory_blacklist = ('build', 'dist', '.github', 'site', 'tests')
         print(Fore.GREEN + f"Repository initialized at {self.local_repo_path}")
+        self.process_repository()
+        self.embeddings = self.process_embeddings()
 
     def clone_or_checkout_repo(self, repo_url, instance_id, base_commit):
         # Define the local path to clone the repository to, now using instance_id
@@ -107,4 +111,51 @@ class Seven:
                     print(Fore.RED + f"Error processing {file_path}: {e}")
 
         self.save_descriptions(descriptions)
-        print(Fore.GREEN + f"Completed processing. Total files described: {num_files}.")
+        print(Fore.GREEN + f"Processed file descriptions: {num_files}.")
+
+    def load_embeds(self):
+        embeds_path = self.descriptions_path.parent / "embeddings.npy"
+        if embeds_path.exists():
+            return np.load(embeds_path)
+        return None
+
+    def save_embeds(self, embeds):
+        embeds_path = self.descriptions_path.parent / "embeddings.npy"
+        np.save(embeds_path, embeds)
+
+    def get_embeds(self, descriptions, batch_size=50, save=True):
+        embeds_path = self.descriptions_path.parent / "embeds.npy"
+
+        # Check if embeddings already exist to avoid re-computation
+        if embeds_path.exists():
+            print("Loading existing embeddings.")
+            return np.load(embeds_path)
+
+        # Initialize an empty array for embeddings
+        embeds = np.empty((0, EMBED_DIMS), dtype=np.float32)
+        batch = []
+
+        # Prepare batch processing for embeddings
+        for description in descriptions.values():
+            batch.append(description)
+            if len(batch) == batch_size:
+                embeds_batch = embed(batch)  # Assume embed function returns an array of embeddings
+                embeds = np.append(embeds, embeds_batch, axis=0)
+                batch = []  # Clear the batch
+
+        # Process any remaining descriptions in the last batch
+        if batch:
+            embeds_batch = embed(batch)  # Process the final batch
+            embeds = np.append(embeds, embeds_batch, axis=0)
+
+        # Save embeddings if requested
+        if save:
+            print(Fore.GREEN + f"Saving embeddings to {embeds_path}.")
+            np.save(embeds_path, embeds)
+
+        return embeds
+
+    def process_embeddings(self):
+        descriptions = self.load_descriptions()
+        self.embeddings = self.get_embeds(descriptions)
+        print(Fore.GREEN + f"Initialized embeddings: {len(self.embeddings)}")
