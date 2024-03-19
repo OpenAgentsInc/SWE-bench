@@ -1,3 +1,3 @@
 From root dir
 
-`python -m harness.demo`
+`python -m harness_devin.demo`
