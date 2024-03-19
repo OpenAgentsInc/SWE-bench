@@ -68,12 +68,17 @@ class Seven:
             json.dump(descriptions, f, indent=2)
 
     def generate_description(self, file_path, code):
-        # Replace this placeholder with the actual call to generate the description
-        # For example, using OpenAI's Codex or any other model/API you have access to
         description_prompt = 'A short summary in plain English of the above code is:'
         extension = file_path.suffix[1:]  # Remove the dot from the extension
-        prompt = f'File: {file_path}\n\nCode:\n\n```{extension}\n{code}```\n\n{description_prompt}\nThis file'
-        description = 'This file contains a sample code snippet.'  # Placeholder description
+        # Adjust the prompt to include only the relevant part of the path
+        relative_path_str = str(file_path.relative_to(self.local_repo_path.parent))
+        prompt = f'File: {relative_path_str}\n\nCode:\n\n```{extension}\n{code}```\n\n{description_prompt}\n'
+
+        # Generate the description using the 'complete' function
+        description = complete(prompt)
+
+        # If the 'complete' function returns a string directly, use it as the description
+        # Otherwise, you may need to adjust based on how 'complete' returns data
         return description
 
     def process_repository(self):
