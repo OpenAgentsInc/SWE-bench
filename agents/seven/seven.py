@@ -22,9 +22,9 @@ class Seven:
         self.extensions = ('.md', '.js', '.jsx', '.py', '.json', '.html', '.css', '.scss', '.yml', '.yaml', '.ts', '.tsx', '.ipynb', '.c', '.cc', '.cpp', '.go', '.h', '.hpp', '.java', '.sol', '.sh', '.txt')
         # Directories to exclude from processing
         self.directory_blacklist = ('build', 'dist', '.github', 'site', 'tests')
-        print(Fore.GREEN + f"Repository initialized at {self.local_repo_path}")
+        print(Fore.GREEN + f"Repository initialized")
         self.process_repository()
-        self.embeddings = self.process_embeddings()
+        self.process_embeddings()
 
     def clone_or_checkout_repo(self, repo_url, instance_id, base_commit):
         # Define the local path to clone the repository to, now using instance_id
