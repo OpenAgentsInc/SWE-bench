@@ -28,6 +28,13 @@ def load_dataset_and_test_spec():
         with open(CACHE_FILE, 'wb') as cache_file:
             pickle.dump(dataset, cache_file)
 
-    first_dataset_item = dataset[0]
-    test1 = make_test_spec(first_dataset_item)
-    return first_dataset_item, test1
+    # Find the dataset_item with the specific instance_id
+    specific_instance_id = 'astropy__astropy-12057'
+    astropy_instance = next((item for item in dataset if item['instance_id'] == specific_instance_id), None)
+
+    if astropy_instance is None:
+        raise ValueError(f"No dataset item found with instance_id {specific_instance_id}")
+
+    # Generate the test specification for the found dataset item
+    test1 = make_test_spec(astropy_instance) # instance_id, setup_script, prompt, eval_script
+    return astropy_instance, test1
