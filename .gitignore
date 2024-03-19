@@ -173,3 +173,4 @@ analysis/evaluation/*.pdf
 
 workspace/
 *.pkl
+.DS_Store
