@@ -13,5 +13,5 @@ def run(dataset: SwebenchInstance, test_spec: TestSpec):
 
     seven = Seven(dataset)
     patches = seven.generate_patches()
-    print("PATCHES: \n")
+    print("PATCHES:")
     print(patches)

@@ -1,7 +1,9 @@
 import json
 import numpy as np
+import openai
 import os
 import re
+from aider.coders import Coder
 from git import Repo, GitCommandError
 from colorama import Fore, Style, init
 from harness_devin.types import SwebenchInstance
@@ -193,6 +195,18 @@ class Seven:
         nearest_files_contents = self.get_nearest_files(problem_statement)
         print(f"Found {len(nearest_files_contents)} nearest files.")
 
+        # Ensure paths are relative to local_repo_path by removing any leading slash, then combine with local_repo_path
+        fnames = [self.local_repo_path / file_path.lstrip("/") for file_path, _ in nearest_files_contents]
+
+        # Ensure the paths are converted to strings if needed by the API or further processing
+        fnames_str = [str(fname) for fname in fnames]
+
+        client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+
+        # # Pass the absolute paths to the fnames parameter
+        coder = Coder.create(client=client, fnames=fnames_str)
+        print(f"Created coder with {len(fnames_str)} files.")
+
 
     def generate_patches_old(self):
 
@@ -265,7 +279,10 @@ class Seven:
         # Get the embedding for the query
         query_embedding = embed([query])[0]
 
-        # Calculate the cosine similarity between the query embedding and all file embeddings
+        # Normalize if your file embeddings were normalized
+        query_embedding /= np.linalg.norm(query_embedding)
+
+        # Calculate the cosine similarity
         similarities = np.dot(self.embeddings, query_embedding) / (np.linalg.norm(self.embeddings, axis=1) * np.linalg.norm(query_embedding))
 
         # Sort the files by decreasing similarity
@@ -278,7 +295,6 @@ class Seven:
         paths = list(descriptions.keys())  # Assuming the descriptions' keys are the relative file paths
         nearest_file_paths = [paths[index] for index in nearest_indices if index < len(paths)]
 
-        # Optional: Fetch the content of the nearest files if needed
         nearest_files_contents = []
         for file_path in nearest_file_paths:
             try:
