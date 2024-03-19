@@ -13,6 +13,7 @@ class Seven:
     directory_blacklist = ('build', 'dist', '.github')
 
     def __init__(self, dataset: SwebenchInstance):
+        self.dataset = dataset
         self.instance_id = dataset["instance_id"]
         self.repo = dataset["repo"]
         self.base_commit = dataset["base_commit"]
@@ -184,3 +185,43 @@ class Seven:
         descriptions = self.load_descriptions()
         print(Fore.BLUE + f"Loaded {len(descriptions)} descriptions.")
         self.embeddings = self.get_embeds(descriptions)
+
+
+    def generate_patches(self):
+        nearest_files = self.get_nearest_files(self.dataset["problem_statement"])
+        print(nearest_files)
+
+    def get_nearest_files(self, query, num_hits=10):
+        print(Fore.BLUE + "Checking for nearest files to query")
+
+        # Ensure there are embeddings to compare against
+        if not hasattr(self, 'embeddings') or self.embeddings.size == 0:
+            print(Fore.RED + "No embeddings available to perform the search.")
+            return []
+
+        # Get the embedding for the query
+        query_embedding = embed([query])[0]
+
+        # Calculate the cosine similarity between the query embedding and all file embeddings
+        similarities = np.dot(self.embeddings, query_embedding) / (np.linalg.norm(self.embeddings, axis=1) * np.linalg.norm(query_embedding))
+
+        # Sort the files by decreasing similarity
+        nearest_indices = np.argsort(similarities)[::-1][:num_hits]
+
+        # Load the descriptions to find the corresponding file paths
+        descriptions = self.load_descriptions()
+
+        # Map indices back to file paths using the descriptions
+        paths = list(descriptions.keys())  # Assuming the descriptions' keys are the relative file paths
+        nearest_file_paths = [paths[index] for index in nearest_indices if index < len(paths)]
+
+        # Optional: Fetch the content of the nearest files if needed
+        nearest_files_contents = []
+        for file_path in nearest_file_paths:
+            try:
+                with open(self.local_repo_path / file_path.strip("/"), 'r') as file:
+                    nearest_files_contents.append((file_path, file.read()))
+            except Exception as e:
+                print(Fore.RED + f"Error accessing file {file_path}: {e}")
+
+        return nearest_files_contents
