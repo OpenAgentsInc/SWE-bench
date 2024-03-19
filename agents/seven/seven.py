@@ -3,6 +3,7 @@ import numpy as np
 import openai
 import os
 import re
+from langchain_anthropic import ChatAnthropic
 from aider.coders import Coder
 from git import Repo, GitCommandError
 from colorama import Fore, Style, init
@@ -201,9 +202,45 @@ class Seven:
         # Ensure the paths are converted to strings if needed by the API or further processing
         fnames_str = [str(fname) for fname in fnames]
 
+        # Initialize the prompt with the problem statement
+        prompt = f"Given the problem statement:\n\n{problem_statement}\n\n"
+
+        # Append the content of each nearest file to the prompt
+        for file_path, content in nearest_files_contents:
+            # Ensure the file path is a string relative to the local_repo_path, stripping any leading slash
+            file_path_str = str(self.local_repo_path / file_path.lstrip("/"))
+            prompt += f"Contents of {file_path_str}:\n\n```python\n{content}\n```\n\n"
+
+        prompt += "Please provide a code patch that solves the problem."
+
+        # Ensure the API key is set
+        anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not anthropic_api_key:
+            raise ValueError("Anthropic API key not found. Please set the ANTHROPIC_API_KEY environment variable.")
+
+        chat = ChatAnthropic(anthropic_api_key=anthropic_api_key, model='claude-3-opus-20240229', temperature=0)
+
+        # Adjust the call to invoke with a string prompt directly
+        response = chat.invoke(prompt)
+
+        # Print the response from the model
+        print("Claude's response:", response.content)
+
+
+
+    def pass_to_alder(self):
+        problem_statement = self.dataset.get("problem_statement", "")
+        nearest_files_contents = self.get_nearest_files(problem_statement)
+        print(f"Found {len(nearest_files_contents)} nearest files.")
+
+        # Ensure paths are relative to local_repo_path by removing any leading slash, then combine with local_repo_path
+        fnames = [self.local_repo_path / file_path.lstrip("/") for file_path, _ in nearest_files_contents]
+
+        # Ensure the paths are converted to strings if needed by the API or further processing
+        fnames_str = [str(fname) for fname in fnames]
+
         client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
-        # # Pass the absolute paths to the fnames parameter
         coder = Coder.create(client=client, fnames=fnames_str)
         print(f"Created coder with {len(fnames_str)} files.")
 
