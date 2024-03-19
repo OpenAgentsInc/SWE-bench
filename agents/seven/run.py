@@ -12,4 +12,6 @@ def run(dataset: SwebenchInstance, test_spec: TestSpec):
     print(Fore.MAGENTA + 'Seven will assimilate ' + dataset["instance_id"])
 
     seven = Seven(dataset)
-    seven.generate_patches()
+    patches = seven.generate_patches()
+    print("PATCHES: \n")
+    print(patches)
