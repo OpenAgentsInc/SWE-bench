@@ -1,8 +1,7 @@
 import os
 import subprocess
 from langchain_anthropic import ChatAnthropic
-from .dataset import get_dataset
-from .scripts import make_test_spec
+from harness_devin import get_dataset, make_test_spec
 
 # Load dotenv
 from dotenv import load_dotenv
