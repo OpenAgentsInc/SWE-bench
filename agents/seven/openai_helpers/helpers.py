@@ -13,8 +13,8 @@ MAX_CONTENT_LENGTH_COMPLETE = 4097
 MAX_CONTENT_LENGTH_COMPLETE_CODE = 8191
 EMBED_DIMS = 1536
 MODEL_EMBED = 'text-embedding-ada-002'
-MODEL_COMPLETION = 'text-davinci-003'
-MODEL_COMPLETION_CODE = 'code-davinci-002'
+MODEL_COMPLETION = 'gpt-3.5-turbo-instruct'
+MODEL_COMPLETION_CODE = 'gpt-3.5-turbo-instruct'
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 

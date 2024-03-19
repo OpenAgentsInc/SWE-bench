@@ -9,50 +9,50 @@ from .openai_helpers.helpers import compare_embeddings, compare_text, embed, com
 from pathlib import Path
 
 class Seven:
+    extensions = ('.js', '.jsx', '.py', '.md', '.json', '.html', '.css', '.yml', '.yaml', '.ts', '.tsx', '.ipynb', '.c', '.cc', '.cpp', '.go', '.h', '.hpp', '.java', '.sol', '.sh', '.txt')
+    directory_blacklist = ('build', 'dist', '.github')
+
     def __init__(self, dataset: SwebenchInstance):
         self.instance_id = dataset["instance_id"]
         self.repo = dataset["repo"]
         self.base_commit = dataset["base_commit"]
         self.token = os.getenv('GITHUB_TOKEN')
         self.repo_url = f"https://github.com/{self.repo}.git"
-        self.local_repo_path = self.clone_or_checkout_repo(self.repo_url, self.instance_id, self.base_commit)
-        self.descriptions_path = Path(self.local_repo_path).parent / 'descriptions'
-        os.makedirs(self.descriptions_path, exist_ok=True)  # Ensure the directory for descriptions exists
-        # File extensions to include
-        self.extensions = ('.md', '.js', '.jsx', '.py', '.json', '.html', '.css', '.scss', '.yml', '.yaml', '.ts', '.tsx', '.ipynb', '.c', '.cc', '.cpp', '.go', '.h', '.hpp', '.java', '.sol', '.sh', '.txt')
-        # Directories to exclude from processing
-        self.directory_blacklist = ('build', 'dist', '.github', 'site', 'tests')
-        print(Fore.GREEN + f"Repository initialized")
+
+        # This path is the root for this instance, including descriptions, embeddings, and the cloned repo.
+        self.instance_path = Path(__file__).parent / 'workspace' / self.instance_id
+        os.makedirs(self.instance_path, exist_ok=True)  # Ensure the instance directory exists
+
+        # The local_repo_path is now directly under instance_path. The repo's natural folder is created by git clone.
+        self.local_repo_path = self.instance_path / self.repo.split('/')[-1]
+
+        # Adjustments are not needed for descriptions and embeddings paths since they're correctly placed
+        self.descriptions_path = self.instance_path / 'descriptions.json'
+        self.embeddings_path = self.instance_path / "embeddings.npy"
+
+        print(Fore.GREEN + f"Repository initialization setup at {self.instance_path.relative_to(Path(__file__).parent)}")
+        self.clone_or_checkout_repo(self.repo_url, self.base_commit)
         self.process_repository()
         self.process_embeddings()
 
-    def clone_or_checkout_repo(self, repo_url, instance_id, base_commit):
-        # Define the local path to clone the repository to, now using instance_id
-        local_path = os.path.join(os.path.dirname(__file__), 'workspace', instance_id)
-
-        if not os.path.isdir(os.path.join(local_path, '.git')):
-            # Ensure the target directory exists
-            os.makedirs(local_path, exist_ok=True)
-
-            # Clone the repository if it does not exist
+    def clone_or_checkout_repo(self, repo_url, base_commit):
+        if not self.local_repo_path.joinpath('.git').exists():
             print(Fore.BLUE + "Cloning repository...")
-            repo = Repo.clone_from(repo_url, local_path, env={'GIT_TERMINAL_PROMPT': '0'})
-            print(Fore.GREEN + "Repository cloned successfully.")
+            Repo.clone_from(repo_url, str(self.local_repo_path), env={'GIT_TERMINAL_PROMPT': '0'})
+            print(Fore.GREEN + "Repository cloned successfully into " + str(self.local_repo_path.relative_to(Path(__file__).parent)))
         else:
-            print(Fore.YELLOW + "Repository already exists locally. Skipping clone.")
-            repo = Repo(local_path)
+            print(Fore.YELLOW + "Repository already exists locally at " + str(self.local_repo_path.relative_to(Path(__file__).parent)) + ". Skipping clone.")
 
         # Checkout the specified base commit
+        repo = Repo(str(self.local_repo_path))
         try:
             repo.git.checkout(base_commit)
             print(Fore.GREEN + f"Checked out to commit {base_commit}.")
         except GitCommandError as e:
             print(Fore.RED + f"Failed to checkout commit {base_commit}: {e}")
 
-        return local_path
-
     def load_descriptions(self):
-        descriptions_file = self.descriptions_path / 'descriptions.json'
+        descriptions_file = self.descriptions_path
         if descriptions_file.exists():
             try:
                 with open(descriptions_file, 'r') as f:
@@ -63,8 +63,7 @@ class Seven:
         return {}
 
     def save_descriptions(self, descriptions):
-        descriptions_file = self.descriptions_path / 'descriptions.json'
-        with open(descriptions_file, 'w') as f:
+        with open(self.descriptions_path, 'w') as f:
             json.dump(descriptions, f, indent=2)
 
     def generate_description(self, file_path, code):
@@ -82,83 +81,99 @@ class Seven:
         return description
 
     def process_repository(self):
-        descriptions = self.load_descriptions()
-        num_files = len(descriptions)
-        repo_root_path = Path(self.local_repo_path)
+        # Load existing descriptions
+        existing_descriptions = self.load_descriptions()
+        print(Fore.YELLOW + f"Starting with {len(existing_descriptions)} existing descriptions.")
 
-        for root, dirs, files in os.walk(repo_root_path, topdown=True):
-            dirs[:] = [d for d in dirs if d not in self.directory_blacklist]  # Filter out blacklisted directories
+        # Counter for new descriptions since the last save
+        new_descriptions_since_last_save = 0
+
+        # Iterate over each file in the repository
+        total_files_processed = 0
+        for root, dirs, files in os.walk(self.local_repo_path, topdown=True):
+            # Filter out blacklisted directories
+            dirs[:] = [d for d in dirs if d not in self.directory_blacklist]
+
             for file_name in files:
                 file_path = Path(root) / file_name
-                if file_path.suffix not in self.extensions:
-                    continue  # Skip files not in the whitelist
 
                 # Calculate the relative path from the repository root
-                relative_path = file_path.relative_to(repo_root_path)
+                # Important: Ensure this matches exactly how keys are stored in descriptions.json
+                relative_path_str = '/' + str(file_path.relative_to(self.local_repo_path)).replace("\\", "/")
 
-                # Convert to string and ensure it starts with "/"
-                relative_path_str = f"/{relative_path}"
-
-                if relative_path_str in descriptions:
-                    continue  # Skip if description already exists
+                # Skip files not matching the extensions whitelist or already described
+                if file_path.suffix not in self.extensions or relative_path_str in existing_descriptions:
+                    continue
 
                 try:
                     with open(file_path, 'r') as file:
                         code = file.read()
+                    # Generate a new description
                     description = self.generate_description(file_path, code)
-                    descriptions[relative_path_str] = description  # Save using the relative path
+                    existing_descriptions[relative_path_str] = description
 
-                    num_files += 1
-                    if num_files % 10 == 0:
-                        self.save_descriptions(descriptions)
-                        print(f'Saved descriptions for {num_files} files.')
+                    new_descriptions_since_last_save += 1
+                    total_files_processed += 1
+
+                    # Save every 10 new descriptions
+                    if new_descriptions_since_last_save >= 10:
+                        self.save_descriptions(existing_descriptions)
+                        print(Fore.GREEN + f"Saved intermediate descriptions after processing {total_files_processed} files.")
+                        new_descriptions_since_last_save = 0
+
                 except Exception as e:
-                    print(Fore.RED + f"Error processing {file_path}: {e}")
+                    print(Fore.RED + f"Error processing {relative_path_str}: {e}")
 
-        self.save_descriptions(descriptions)
-        print(Fore.GREEN + f"Processed file descriptions: {num_files}.")
+        # Final save to capture any remaining new descriptions
+        if new_descriptions_since_last_save > 0:
+            self.save_descriptions(existing_descriptions)
+            print(Fore.GREEN + f"Final save of descriptions after processing all files.")
+
+        print(Fore.GREEN + f"Total files processed: {total_files_processed}.")
+        print(Fore.GREEN + f"Total file descriptions now available: {len(existing_descriptions)}.")
+
 
     def load_embeds(self):
-        embeds_path = self.descriptions_path.parent / "embeddings.npy"
-        if embeds_path.exists():
-            return np.load(embeds_path)
+        if self.embeddings_path.exists():
+            return np.load(self.embeddings_path)
         return None
 
     def save_embeds(self, embeds):
-        embeds_path = self.descriptions_path.parent / "embeddings.npy"
-        np.save(embeds_path, embeds)
+        np.save(self.embeddings_path, embeds)
 
     def get_embeds(self, descriptions, batch_size=50, save=True):
-        embeds_path = self.descriptions_path.parent / "embeds.npy"
+        # Path to save the embeddings
+        embeds_path = self.embeddings_path
 
-        # Check if embeddings already exist to avoid re-computation
+        # If embeddings file already exists, load and return
         if embeds_path.exists():
             print("Loading existing embeddings.")
-            return np.load(embeds_path)
+            embeddings = np.load(embeds_path)
+            print(f"Loaded {len(embeddings)} embeddings.")
+            return embeddings
 
-        # Initialize an empty array for embeddings
-        embeds = np.empty((0, EMBED_DIMS), dtype=np.float32)
-        batch = []
+        # Initialize an empty list to collect embeddings
+        embeddings = []
 
-        # Prepare batch processing for embeddings
-        for description in descriptions.values():
-            batch.append(description)
-            if len(batch) == batch_size:
-                embeds_batch = embed(batch)  # Assume embed function returns an array of embeddings
-                embeds = np.append(embeds, embeds_batch, axis=0)
-                batch = []  # Clear the batch
+        # Prepare descriptions in batches for embedding
+        description_texts = list(descriptions.values())
+        for i in range(0, len(description_texts), batch_size):
+            batch_texts = description_texts[i:i+batch_size]
+            print(f"Processing batch {i//batch_size + 1}/{len(description_texts)//batch_size + 1}")
+            batch_embeddings = embed(batch_texts)  # Assuming this returns a list of numpy arrays
+            embeddings.extend(batch_embeddings)
 
-        # Process any remaining descriptions in the last batch
-        if batch:
-            embeds_batch = embed(batch)  # Process the final batch
-            embeds = np.append(embeds, embeds_batch, axis=0)
+        # Convert list of embeddings to a single numpy array
+        embeddings = np.array(embeddings)
 
         # Save embeddings if requested
-        if save:
-            print(Fore.GREEN + f"Saving embeddings to {embeds_path}.")
-            np.save(embeds_path, embeds)
+        if save and embeddings.size > 0:
+            print(f"Saving {len(embeddings)} embeddings to {embeds_path}.")
+            np.save(embeds_path, embeddings)
+        elif not embeddings.size > 0:
+            print("No embeddings were generated.")
 
-        return embeds
+        return embeddings
 
     def process_embeddings(self):
         descriptions = self.load_descriptions()
