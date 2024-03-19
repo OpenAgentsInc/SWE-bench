@@ -30,7 +30,7 @@ class Seven:
         self.descriptions_path = self.instance_path / 'descriptions.json'
         self.embeddings_path = self.instance_path / "embeddings.npy"
 
-        print(Fore.GREEN + f"Repository initialization setup at {self.instance_path.relative_to(Path(__file__).parent)}")
+        print(Fore.BLUE + f"Repo initialized at {self.instance_path.relative_to(Path(__file__).parent)}")
         self.clone_or_checkout_repo(self.repo_url, self.base_commit)
         self.process_repository()
         self.process_embeddings()
@@ -39,15 +39,15 @@ class Seven:
         if not self.local_repo_path.joinpath('.git').exists():
             print(Fore.BLUE + "Cloning repository...")
             Repo.clone_from(repo_url, str(self.local_repo_path), env={'GIT_TERMINAL_PROMPT': '0'})
-            print(Fore.GREEN + "Repository cloned successfully into " + str(self.local_repo_path.relative_to(Path(__file__).parent)))
+            print(Fore.GREEN + "Repo cloned successfully into " + str(self.local_repo_path.relative_to(Path(__file__).parent)))
         else:
-            print(Fore.YELLOW + "Repository already exists locally at " + str(self.local_repo_path.relative_to(Path(__file__).parent)) + ". Skipping clone.")
+            print(Fore.BLUE + "Using existing repo at " + str(self.local_repo_path.relative_to(Path(__file__).parent)))
 
         # Checkout the specified base commit
         repo = Repo(str(self.local_repo_path))
         try:
             repo.git.checkout(base_commit)
-            print(Fore.GREEN + f"Checked out to commit {base_commit}.")
+            print(Fore.BLUE + f"Checked out to commit {base_commit}.")
         except GitCommandError as e:
             print(Fore.RED + f"Failed to checkout commit {base_commit}: {e}")
 
@@ -83,7 +83,7 @@ class Seven:
     def process_repository(self):
         # Load existing descriptions
         existing_descriptions = self.load_descriptions()
-        print(Fore.YELLOW + f"Starting with {len(existing_descriptions)} existing descriptions.")
+        print(Fore.BLUE + f"Starting with {len(existing_descriptions)} existing descriptions.")
 
         # Counter for new descriptions since the last save
         new_descriptions_since_last_save = 0
@@ -129,8 +129,8 @@ class Seven:
             self.save_descriptions(existing_descriptions)
             print(Fore.GREEN + f"Final save of descriptions after processing all files.")
 
-        print(Fore.GREEN + f"Total files processed: {total_files_processed}.")
-        print(Fore.GREEN + f"Total file descriptions now available: {len(existing_descriptions)}.")
+        print(Fore.BLUE + f"Total files processed: {total_files_processed}.")
+        print(Fore.BLUE + f"Total file descriptions now available: {len(existing_descriptions)}.")
 
 
     def load_embeds(self):
@@ -152,9 +152,9 @@ class Seven:
             if len(descriptions) != len(np.load(embeds_path)):
                 print(Fore.YELLOW + "Number of descriptions has changed. Re-generating embeddings.")
             else:
-                print("Loading existing embeddings.")
+                print(Fore.BLUE + "Loading existing embeddings.")
                 embeddings = np.load(embeds_path)
-                print(f"Loaded {len(embeddings)} embeddings.")
+                print(Fore.BLUE + f"Loaded {len(embeddings)} embeddings.")
                 return embeddings
 
         # Initialize an empty list to collect embeddings
@@ -182,6 +182,5 @@ class Seven:
 
     def process_embeddings(self):
         descriptions = self.load_descriptions()
-        print(Fore.YELLOW + f"Loaded {len(descriptions)} descriptions.")
+        print(Fore.BLUE + f"Loaded {len(descriptions)} descriptions.")
         self.embeddings = self.get_embeds(descriptions)
-        print(Fore.GREEN + f"Initialized embeddings: {len(self.embeddings)}")
