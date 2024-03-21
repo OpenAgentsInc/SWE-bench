@@ -198,7 +198,8 @@ class Seven:
         # Initialize the prompt with the problem statement and the original content of the file
         prompt = f"Given the problem statement:\n\n{problem_statement}\n\nAnd the content of the file {file_path}:\n\n```python\n{original_content}\n```\n\n"
         prompt += "Please edit the file to solve the problem and output the edited file content. Respond only with code in a single Markdown code block (starting with ```python) with no explanation because your response will be pasted into the file."
-        print(f"Prompt for {file_path}")
+        print(f"Prompt for {file_path}:")
+        print(prompt)
 
         # Ensure the API key is set
         anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
