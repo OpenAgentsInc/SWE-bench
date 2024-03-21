@@ -4,7 +4,6 @@ import openai
 import os
 import re
 from langchain_anthropic import ChatAnthropic
-from aider.coders import Coder
 from git import Repo, GitCommandError
 from colorama import Fore, Style, init
 from harness_devin.types import SwebenchInstance
@@ -226,86 +225,6 @@ class Seven:
         # Print the response from the model
         print("Claude's response:", response.content)
 
-
-
-    def pass_to_alder(self):
-        problem_statement = self.dataset.get("problem_statement", "")
-        nearest_files_contents = self.get_nearest_files(problem_statement)
-        print(f"Found {len(nearest_files_contents)} nearest files.")
-
-        # Ensure paths are relative to local_repo_path by removing any leading slash, then combine with local_repo_path
-        fnames = [self.local_repo_path / file_path.lstrip("/") for file_path, _ in nearest_files_contents]
-
-        # Ensure the paths are converted to strings if needed by the API or further processing
-        fnames_str = [str(fname) for fname in fnames]
-
-        client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-
-        coder = Coder.create(client=client, fnames=fnames_str)
-        print(f"Created coder with {len(fnames_str)} files.")
-
-        coder.run("Please help me resolve this issue: " + problem_statement)
-
-
-    def generate_patches_old(self):
-
-        def clean_code_block(code_block):
-            # Strip leading and trailing whitespace
-            code_block = code_block.strip()
-            # Use regular expression to remove ``` followed by optional language identifier
-            code_block = re.sub(r'^```[a-z]*\n', '', code_block, flags=re.MULTILINE)
-            code_block = re.sub(r'\n```$', '', code_block, flags=re.MULTILINE)
-            return code_block
-
-        problem_statement = self.dataset.get("problem_statement", "")
-        nearest_files_contents = self.get_nearest_files(problem_statement)
-        patches = []
-
-        for file_path, content in nearest_files_contents:
-            print(f"Processing file: {file_path}")
-
-            prompt = f"Below is an issue for the {self.repo} codebase.\nIssue: {problem_statement}\n\nHere is a potential file that may need to be updated to fix the issue:\n"
-            prompt += f"File: {file_path}\n```{content}```\n"
-
-            action_prompt1 = "Does this file need to be changed to resolve the issue? Respond with only `Yes` or `No`."
-            # Simulating a call to complete; in practice, call your OpenAI completion API here
-            needs_patch = complete(prompt + action_prompt1)
-            print(file_path + " needs patch: " + needs_patch)
-
-            if needs_patch == "No":
-                continue
-
-            action_prompt2 = "Identify which code block needs to be changed (mark it up with \"Before:\") and output the change (mark it up with \"After:\"). Make your change match the coding style of the original file."
-            change_prompt = prompt + action_prompt2
-            change = complete(change_prompt)
-
-            if "Before:" not in change or "After:" not in change:
-                print("Warning: incorrect output format")
-                continue
-
-            before_and_after = change.split("Before:", 1)[1]
-            before, after = before_and_after.split("After:", 1)
-
-            # Assuming clean_code_block is a function you've defined to clean up code blocks
-            before = clean_code_block(before.strip())
-            after = clean_code_block(after.strip())
-
-            if before in content:
-                new_file_content = content.replace(before, after)
-                patch = {
-                    "file_path": file_path,
-                    "original_content": content,
-                    "modified_content": new_file_content,
-                }
-                patches.append(patch)
-            else:
-                print("Warning: cannot locate `Before` block in file content")
-
-
-
-        print(f"Generated {len(patches)} patches.")
-
-        return patches
 
     def get_nearest_files(self, query, num_hits=10):
         print(Fore.BLUE + "Checking for nearest files to query")
