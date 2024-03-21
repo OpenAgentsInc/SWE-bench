@@ -212,34 +212,28 @@ class Seven:
         change_suggestion = complete(prompt_for_identifying_change)
 
         if "Before:" not in change_suggestion or "After:" not in change_suggestion:
-            print("Warning: incorrect output format or no changes identified.")
+            raise Exception("Warning: incorrect output format or no changes identified.")
             return
 
-        # Attempt a more granular approach to matching and replacing code
-        try:
-            # Extract the 'Before' and 'After' blocks and remove Markdown code block syntax
-            before_and_after = change_suggestion.split("Before:", 1)[1]
-            before, after = before_and_after.split("After:", 1)
-            before = before.strip().replace("```python", "").replace("```", "").strip()
-            after = after.strip().replace("```python", "").replace("```", "").strip()
+        # Extracting the "Before" and "After" blocks from the suggestion
+        before_and_after = change_suggestion.split("Before:", 1)[1]
+        before, after = before_and_after.split("After:", 1)
+        before = before.strip()  # Clean up leading/trailing whitespace
+        after = after.strip()  # Clean up leading/trailing whitespace
 
-            # Attempt to replace the 'Before' block with the 'After' block in the file content
-            if before in file_content:
-                new_file_content = file_content.replace(before, after)
-                with open(self.local_repo_path / file_path.strip("/"), 'w') as file:
-                    file.write(new_file_content)
-                print(f"Changes applied successfully to {file_path}.")
-            else:
-                # If direct match fails, attempt normalization
-                normalized_before = ' '.join(before.split())
-                normalized_file_content = ' '.join(file_content.split())
-                if normalized_before in normalized_file_content:
-                    # This part is tricky; normalization can mess up the exact replacement needed
-                    # A robust solution would require parsing or more sophisticated string manipulation
-                    print("Found match after normalization, but exact replacement might be tricky.")
-                else:
-                    raise ValueError("Normalized content also does not match.")
-        except ValueError as e:
+        # Stripping code block markup if present
+        before = before.replace("```python", "").replace("```", "").strip()
+        after = after.replace("```python", "").replace("```", "").strip()
+
+        # Check if the 'before' code block is in the original file content
+        if before in file_content:
+            # Replace the 'before' block with the 'after' block in the file content
+            new_file_content = file_content.replace(before, after)
+            # Save the modified file content
+            with open(self.local_repo_path / file_path.strip("/"), 'w') as file:
+                file.write(new_file_content)
+            print(f"Changes applied successfully to {file_path}.")
+        else:
             # Debugging information before throwing an exception
             print("Debugging Information:")
             print(f"File Path: {file_path}")
@@ -247,9 +241,7 @@ class Seven:
             print(before)
             print("Change Suggestion Received:")
             print(change_suggestion)
-            print(e)
             raise Exception("Cannot locate `Before` block in the file content.")
-
 
 
 
