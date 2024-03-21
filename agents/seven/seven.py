@@ -12,6 +12,8 @@ from json.decoder import JSONDecodeError
 from .openai_helpers.helpers import compare_embeddings, compare_text, embed, complete, complete_code, EMBED_DIMS
 from pathlib import Path
 
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 class Seven:
     extensions = ('.js', '.jsx', '.py', '.md', '.json', '.html', '.css', '.yml', '.yaml', '.ts', '.tsx', '.ipynb', '.c', '.cc', '.cpp', '.go', '.h', '.hpp', '.java', '.sol', '.sh', '.txt')
     directory_blacklist = ('build', 'dist', '.github')
@@ -193,13 +195,75 @@ class Seven:
     def edit_file(self, file_path, problem_statement):
         # Read the original content of the file
         with open(self.local_repo_path / file_path.strip("/"), 'r') as file:
+            file_content = file.read()
+
+        # Construct a prompt to identify the code block that needs changes
+        prompt_for_identifying_change = (
+            f"Given the problem statement:\n\n{problem_statement}\n\n"
+            f"And the content of the file {file_path}:\n\n```python\n{file_content}\n```\n\n"
+            "Identify which code block needs to be changed (mark it up with \"Before:\") "
+            "and suggest the change (mark it up with \"After:\"). "
+            "Make your change match the coding style of the original file."
+        )
+        print(f"Prompt for identifying change in {file_path}:")
+        print(prompt_for_identifying_change)
+
+        # Use the custom 'complete' function to send the prompt and get the response
+        change_suggestion = complete(prompt_for_identifying_change)
+
+        if "Before:" not in change_suggestion or "After:" not in change_suggestion:
+            print("Warning: incorrect output format or no changes identified.")
+            return
+
+        # Attempt a more granular approach to matching and replacing code
+        try:
+            # Extract the 'Before' and 'After' blocks and remove Markdown code block syntax
+            before_and_after = change_suggestion.split("Before:", 1)[1]
+            before, after = before_and_after.split("After:", 1)
+            before = before.strip().replace("```python", "").replace("```", "").strip()
+            after = after.strip().replace("```python", "").replace("```", "").strip()
+
+            # Attempt to replace the 'Before' block with the 'After' block in the file content
+            if before in file_content:
+                new_file_content = file_content.replace(before, after)
+                with open(self.local_repo_path / file_path.strip("/"), 'w') as file:
+                    file.write(new_file_content)
+                print(f"Changes applied successfully to {file_path}.")
+            else:
+                # If direct match fails, attempt normalization
+                normalized_before = ' '.join(before.split())
+                normalized_file_content = ' '.join(file_content.split())
+                if normalized_before in normalized_file_content:
+                    # This part is tricky; normalization can mess up the exact replacement needed
+                    # A robust solution would require parsing or more sophisticated string manipulation
+                    print("Found match after normalization, but exact replacement might be tricky.")
+                else:
+                    raise ValueError("Normalized content also does not match.")
+        except ValueError as e:
+            # Debugging information before throwing an exception
+            print("Debugging Information:")
+            print(f"File Path: {file_path}")
+            print("Expected 'Before' Block:")
+            print(before)
+            print("Change Suggestion Received:")
+            print(change_suggestion)
+            print(e)
+            raise Exception("Cannot locate `Before` block in the file content.")
+
+
+
+
+
+    def edit_file_anthropic(self, file_path, problem_statement):
+        # Read the original content of the file
+        with open(self.local_repo_path / file_path.strip("/"), 'r') as file:
             original_content = file.read()
 
         # Initialize the prompt with the problem statement and the original content of the file
         prompt = f"Given the problem statement:\n\n{problem_statement}\n\nAnd the content of the file {file_path}:\n\n```python\n{original_content}\n```\n\n"
         prompt += "Please edit the file to solve the problem and output the edited file content. Respond only with code in a single Markdown code block (starting with ```python) with no explanation because your response will be pasted into the file."
         print(f"Prompt for {file_path}:")
-        print(prompt)
+        # print(prompt)
 
         # Ensure the API key is set
         anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
