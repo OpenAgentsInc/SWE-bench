@@ -241,12 +241,12 @@ class Seven:
         timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         branch_name = f'temp_branch_for_edits_{timestamp}'
         repo = Repo(str(self.local_repo_path))
-        repo.git.checkout('HEAD', b=branch_name)
+        repo.git.checkout(self.base_commit, b=branch_name)
 
         # Apply edits and generate diffs
         for file_path, _ in nearest_files_contents:
             self.edit_file(file_path, problem_statement)
-        diff = repo.git.diff('HEAD~1')
+        diff = repo.git.diff(self.base_commit)
 
         # Checkout back and delete the temporary branch
         # repo.git.checkout('main')
