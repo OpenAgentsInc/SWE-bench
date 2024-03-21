@@ -1,3 +1,4 @@
+import datetime
 import json
 import numpy as np
 import openai
@@ -189,8 +190,94 @@ class Seven:
         print(Fore.BLUE + f"Loaded {len(descriptions)} descriptions.")
         self.embeddings = self.get_embeds(descriptions)
 
+    def edit_file(self, file_path, problem_statement):
+        # Read the original content of the file
+        with open(self.local_repo_path / file_path.strip("/"), 'r') as file:
+            original_content = file.read()
+
+        # Initialize the prompt with the problem statement and the original content of the file
+        prompt = f"Given the problem statement:\n\n{problem_statement}\n\nAnd the content of the file {file_path}:\n\n```python\n{original_content}\n```\n\n"
+        prompt += "Please edit the file to solve the problem and output the edited file content. Respond only with code in a single Markdown code block (starting with ```python) with no explanation because your response will be pasted into the file."
+        print(f"Prompt for {file_path}")
+
+        # Ensure the API key is set
+        anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not anthropic_api_key:
+            raise ValueError("Anthropic API key not found. Please set the ANTHROPIC_API_KEY environment variable.")
+
+        # Initialize the ChatAnthropic API
+        chat = ChatAnthropic(anthropic_api_key=anthropic_api_key, model='claude-3-opus-20240229', temperature=0)
+
+        # Send the prompt to Claude and get the response
+        response = chat.invoke(prompt)
+
+        # Splitting the response content to extract code
+        parts = response.content.split("```python", 1)
+        print("PARTS:", parts)
+
+        if len(parts) > 1:
+            # Remove all instances of "```" from the edited content
+            edited_content = parts[1].replace("```", "").strip()
+
+            print(f"Edited content for {file_path}:\n{edited_content}")
+
+            # Overwrite the file with the edited content
+            with open(self.local_repo_path / file_path.strip("/"), 'w') as file:
+                file.write(edited_content)
+        else:
+            print(response.content)
+            raise Exception("No code block found in Claude's response. Stopping execution.")
+
 
     def generate_patches(self):
+        problem_statement = self.dataset.get("problem_statement", "")
+        instance_id = self.dataset["instance_id"]
+        model_name_or_path = "seven-v1"  # Adjust as necessary
+
+        nearest_files_contents = self.get_nearest_files(problem_statement)
+        print(f"Found {len(nearest_files_contents)} nearest files.")
+
+        # Create a temporary branch for edits
+        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        branch_name = f'temp_branch_for_edits_{timestamp}'
+        repo = Repo(str(self.local_repo_path))
+        repo.git.checkout('HEAD', b=branch_name)
+
+        # Apply edits and generate diffs
+        for file_path, _ in nearest_files_contents:
+            self.edit_file(file_path, problem_statement)
+        diff = repo.git.diff('HEAD~1')
+
+        # Checkout back and delete the temporary branch
+        # repo.git.checkout('main')
+        # repo.git.branch('-D', branch_name)
+
+        # Construct the prediction entry
+        prediction_entry = {
+            "instance_id": instance_id,
+            "model_patch": diff,
+            "model_name_or_path": model_name_or_path,
+        }
+
+        # Path to your predictions file
+        predictions_path = self.instance_path / "predictions.json"
+
+        # Load existing predictions if file exists, else start with an empty list
+        if predictions_path.exists():
+            with open(predictions_path, 'r') as file:
+                predictions = json.load(file)
+        else:
+            predictions = []
+
+        # Append the new prediction and save
+        predictions.append(prediction_entry)
+        with open(predictions_path, 'w') as file:
+            json.dump(predictions, file, indent=4)
+
+        print(f"Patch saved for {instance_id} in {predictions_path}")
+
+
+    def generate_patches_claude(self):
         problem_statement = self.dataset.get("problem_statement", "")
         nearest_files_contents = self.get_nearest_files(problem_statement)
         print(f"Found {len(nearest_files_contents)} nearest files.")
@@ -226,8 +313,8 @@ class Seven:
         print("Claude's response:", response.content)
 
 
-    def get_nearest_files(self, query, num_hits=10):
-        print(Fore.BLUE + "Checking for nearest files to query")
+    def get_nearest_files(self, query, num_hits=1):
+        print(Fore.BLUE + "Checking for nearest files to query, num_hits:", num_hits)
 
         # Ensure there are embeddings to compare against
         if not hasattr(self, 'embeddings') or self.embeddings.size == 0:
