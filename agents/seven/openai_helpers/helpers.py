@@ -58,27 +58,28 @@ def complete(prompt, tokens_response=1024):
     if len(prompt) > MAX_CONTENT_LENGTH_COMPLETE - tokens_response:
         nonsequitor = '\n...truncated\n'
         margin = int(len(nonsequitor) / 2)
-        first_half = int((MAX_CONTENT_LENGTH_COMPLETE - tokens_response)/ 2)
+        first_half = int((MAX_CONTENT_LENGTH_COMPLETE - tokens_response) / 2)
         prompt = prompt[:first_half - margin] + nonsequitor + prompt[-first_half + margin:]
 
     # Try 3 times to get a response
-    for i in range(0,3):
+    for i in range(3):
         try:
-            results = openai.Completion.create(
-                engine=MODEL_COMPLETION,
+            completion = client.completions.create(
+                model=MODEL_COMPLETION,
                 prompt=prompt,
                 max_tokens=tokens_response,
                 temperature=0.2,
                 top_p=1,
                 frequency_penalty=0.5,
-                presence_penalty=0.6)
+                presence_penalty=0.6
+            )
             break
-        except:
-            print(f"Tried {i} times. Couldn't get response, trying again...")
+        except Exception as e:
+            print(f"Tried {i+1} times. Couldn't get response, trying again...")
             time.sleep(0.6)
-            continue
 
-    return results['choices'][0]['text'].strip()
+    return completion.choices[0].text.strip()
+
 
 def complete_code(prompt, tokens_response=150):
     if len(prompt) > MAX_CONTENT_LENGTH_COMPLETE_CODE - tokens_response:
