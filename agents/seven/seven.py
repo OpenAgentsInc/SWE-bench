@@ -4,6 +4,7 @@ import numpy as np
 import openai
 import os
 import re
+from aider.coders import Coder
 from langchain_anthropic import ChatAnthropic
 from git import Repo, GitCommandError
 from colorama import Fore, Style, init
@@ -221,6 +222,8 @@ class Seven:
         # Use the custom 'complete' function to send the prompt and get the response
         change_suggestion = complete(prompt_for_identifying_change)
 
+        raise Exception(change_suggestion)
+
         if "Before:" not in change_suggestion or "After:" not in change_suggestion:
             raise Exception("Warning: incorrect output format or no changes identified.")
             return
@@ -250,6 +253,23 @@ class Seven:
             print("Change Suggestion Received:\n", after_text)
 
 
+    def pass_to_alder(self):
+        problem_statement = self.dataset.get("problem_statement", "")
+        nearest_files_contents = self.get_nearest_files(problem_statement)
+        print(f"Found {len(nearest_files_contents)} nearest files.")
+
+        # Ensure paths are relative to local_repo_path by removing any leading slash, then combine with local_repo_path
+        fnames = [self.local_repo_path / file_path.lstrip("/") for file_path, _ in nearest_files_contents]
+
+        # Ensure the paths are converted to strings if needed by the API or further processing
+        fnames_str = [str(fname) for fname in fnames]
+
+        client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+
+        coder = Coder.create(client=client, fnames=fnames_str)
+        print(f"Created coder with {len(fnames_str)} files.")
+
+        coder.run("Please help me resolve this issue: " + problem_statement)
 
 
     def generate_patches(self):
@@ -260,44 +280,58 @@ class Seven:
         nearest_files_contents = self.get_nearest_files(problem_statement)
         print(f"Found {len(nearest_files_contents)} nearest files.")
 
-        # Create a temporary branch for edits
-        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        branch_name = f'temp_branch_for_edits_{timestamp}'
-        repo = Repo(str(self.local_repo_path))
-        repo.git.checkout(self.base_commit, b=branch_name)
 
-        # Apply edits and generate diffs
-        for file_path, _ in nearest_files_contents:
-            self.edit_file(file_path, problem_statement)
-        diff = repo.git.diff(self.base_commit)
+        # Ensure paths are relative to local_repo_path by removing any leading slash, then combine with local_repo_path
+        fnames = [self.local_repo_path / file_path.lstrip("/") for file_path, _ in nearest_files_contents]
 
-        # Checkout back and delete the temporary branch
-        # repo.git.checkout('main')
-        # repo.git.branch('-D', branch_name)
+        # Ensure the paths are converted to strings if needed by the API or further processing
+        fnames_str = [str(fname) for fname in fnames]
 
-        # Construct the prediction entry
-        prediction_entry = {
-            "instance_id": instance_id,
-            "model_patch": diff,
-            "model_name_or_path": model_name_or_path,
-        }
+        client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
-        # Path to your predictions file
-        predictions_path = self.instance_path / "predictions.json"
+        coder = Coder.create(client=client, fnames=fnames_str)
+        print(f"Created coder with {len(fnames_str)} files.")
 
-        # Load existing predictions if file exists, else start with an empty list
-        if predictions_path.exists():
-            with open(predictions_path, 'r') as file:
-                predictions = json.load(file)
-        else:
-            predictions = []
+        coder.run("Please help me resolve this issue: " + problem_statement)
 
-        # Append the new prediction and save
-        predictions.append(prediction_entry)
-        with open(predictions_path, 'w') as file:
-            json.dump(predictions, file, indent=4)
+        # # Create a temporary branch for edits
+        # timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        # branch_name = f'temp_branch_for_edits_{timestamp}'
+        # repo = Repo(str(self.local_repo_path))
+        # repo.git.checkout(self.base_commit, b=branch_name)
 
-        print(f"Patch saved for {instance_id} in {predictions_path}")
+        # # Apply edits and generate diffs
+        # for file_path, _ in nearest_files_contents:
+        #     self.edit_file(file_path, problem_statement)
+        # diff = repo.git.diff(self.base_commit)
+
+        # # Checkout back and delete the temporary branch
+        # # repo.git.checkout('main')
+        # # repo.git.branch('-D', branch_name)
+
+        # # Construct the prediction entry
+        # prediction_entry = {
+        #     "instance_id": instance_id,
+        #     "model_patch": diff,
+        #     "model_name_or_path": model_name_or_path,
+        # }
+
+        # # Path to your predictions file
+        # predictions_path = self.instance_path / "predictions.json"
+
+        # # Load existing predictions if file exists, else start with an empty list
+        # if predictions_path.exists():
+        #     with open(predictions_path, 'r') as file:
+        #         predictions = json.load(file)
+        # else:
+        #     predictions = []
+
+        # # Append the new prediction and save
+        # predictions.append(prediction_entry)
+        # with open(predictions_path, 'w') as file:
+        #     json.dump(predictions, file, indent=4)
+
+        # print(f"Patch saved for {instance_id} in {predictions_path}")
 
 
     def generate_patches_claude(self):
