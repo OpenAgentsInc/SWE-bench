@@ -11,6 +11,7 @@ from harness_devin.types import SwebenchInstance
 from json.decoder import JSONDecodeError
 from .openai_helpers.helpers import compare_embeddings, compare_text, embed, complete, complete_code, EMBED_DIMS
 from pathlib import Path
+from diff_match_patch import diff_match_patch
 
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -192,6 +193,15 @@ class Seven:
         print(Fore.BLUE + f"Loaded {len(descriptions)} descriptions.")
         self.embeddings = self.get_embeds(descriptions)
 
+    def apply_changes_with_patch(self, before_text, after_text, file_content):
+        dmp = diff_match_patch()
+        patches = dmp.patch_make(before_text, after_text)
+        new_content, applied_success = dmp.patch_apply(patches, file_content)
+        if all(applied_success):
+            return new_content
+        else:
+            raise ValueError("Not all patches could be applied successfully.")
+
     def edit_file(self, file_path, problem_statement):
         # Read the original content of the file
         with open(self.local_repo_path / file_path.strip("/"), 'r') as file:
@@ -215,75 +225,31 @@ class Seven:
             raise Exception("Warning: incorrect output format or no changes identified.")
             return
 
-        # Extracting the "Before" and "After" blocks from the suggestion
+        # Extracting "Before" and "After" text blocks
         before_and_after = change_suggestion.split("Before:", 1)[1]
         before, after = before_and_after.split("After:", 1)
-        before = before.strip()  # Clean up leading/trailing whitespace
-        after = after.strip()  # Clean up leading/trailing whitespace
+        before_text = before.strip().replace("```python", "").replace("```", "")
+        after_text = after.strip().replace("```python", "").replace("```", "")
 
-        # Stripping code block markup if present
-        before = before.replace("```python", "").replace("```", "").strip()
-        after = after.replace("```python", "").replace("```", "").strip()
+        try:
+            new_file_content = self.apply_changes_with_patch(before_text, after_text, file_content)
 
-        # Check if the 'before' code block is in the original file content
-        if before in file_content:
-            # Replace the 'before' block with the 'after' block in the file content
-            new_file_content = file_content.replace(before, after)
-            # Save the modified file content
-            with open(self.local_repo_path / file_path.strip("/"), 'w') as file:
-                file.write(new_file_content)
-            print(f"Changes applied successfully to {file_path}.")
-        else:
-            # Debugging information before throwing an exception
+            if new_file_content != file_content:
+                # Save the modified file content only if it's different
+                with open(self.local_repo_path / file_path.strip("/"), 'w') as file:
+                    file.write(new_file_content)
+                print(f"Changes applied successfully to {file_path}.")
+            else:
+                print(f"No changes applied to {file_path} as the modified content is identical to the original.")
+        except ValueError as e:
+            # Log the exception details for debugging
+            print(f"Failed to apply changes to {file_path}: {e}")
             print("Debugging Information:")
             print(f"File Path: {file_path}")
-            print("Expected 'Before' Block:")
-            print(before)
-            print("Change Suggestion Received:")
-            print(change_suggestion)
-            raise Exception("Cannot locate `Before` block in the file content.")
+            print("Original 'Before' Block:\n", before_text)
+            print("Change Suggestion Received:\n", after_text)
 
 
-
-
-    def edit_file_anthropic(self, file_path, problem_statement):
-        # Read the original content of the file
-        with open(self.local_repo_path / file_path.strip("/"), 'r') as file:
-            original_content = file.read()
-
-        # Initialize the prompt with the problem statement and the original content of the file
-        prompt = f"Given the problem statement:\n\n{problem_statement}\n\nAnd the content of the file {file_path}:\n\n```python\n{original_content}\n```\n\n"
-        prompt += "Please edit the file to solve the problem and output the edited file content. Respond only with code in a single Markdown code block (starting with ```python) with no explanation because your response will be pasted into the file."
-        print(f"Prompt for {file_path}:")
-        # print(prompt)
-
-        # Ensure the API key is set
-        anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-        if not anthropic_api_key:
-            raise ValueError("Anthropic API key not found. Please set the ANTHROPIC_API_KEY environment variable.")
-
-        # Initialize the ChatAnthropic API
-        chat = ChatAnthropic(anthropic_api_key=anthropic_api_key, model='claude-3-opus-20240229', temperature=0)
-
-        # Send the prompt to Claude and get the response
-        response = chat.invoke(prompt)
-
-        # Splitting the response content to extract code
-        parts = response.content.split("```python", 1)
-        print("PARTS:", parts)
-
-        if len(parts) > 1:
-            # Remove all instances of "```" from the edited content
-            edited_content = parts[1].replace("```", "").strip()
-
-            print(f"Edited content for {file_path}:\n{edited_content}")
-
-            # Overwrite the file with the edited content
-            with open(self.local_repo_path / file_path.strip("/"), 'w') as file:
-                file.write(edited_content)
-        else:
-            print(response.content)
-            raise Exception("No code block found in Claude's response. Stopping execution.")
 
 
     def generate_patches(self):
